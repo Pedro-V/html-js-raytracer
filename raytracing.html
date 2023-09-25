@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <canvas height="600" id="canvas" style="border: 1px black solid" width="600"></canvas>
 <script>
 // ======================================================================
@@ -32,42 +33,74 @@ var UpdateCanvas = function() {
 
 
 // ======================================================================
-//  linear algebra
+//  linear algebra (3D space)
 // ======================================================================
 
-// Dot product of two 3D vectors.
 var DotProduct = function(v1, v2) {
   return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
 }
 
-
-// Computes v1 - v2.
-var Subtract = function(v1, v2) {
-  return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]];
+var ScalarMultiplication = function(s, v) {
+    return [v[0] * s, v[1] * s, v[2] * s];
 }
 
+var Add = function(v1, v2) {
+  return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]];
+}
+
+var Subtract = function(v1, v2) {
+    return Add(v1, ScalarMultiplication(-1, v2));
+}
+
+var Norm = function(v) {
+    return Math.sqrt(DotProduct(v, v));
+}
+
+var Normalize = function(v) {
+    norm = Norm(v);
+    return ScalarMultiplication(1/norm, v);
+}
 
 // ======================================================================
 //  ray tracer
 // ======================================================================
 
 // A Sphere.
-var Sphere = function(center, radius, color) {
-  this.center = center;
-  this.radius = radius;
-  this.color = color;
+var Sphere = function(center, radius, color, specular) {
+    this.center = center;
+    this.radius = radius;
+    this.color = color;
+    this.specular = specular;
 }
+
+// A Light.
+
+var Light = function(type, intensity, position) {
+    this.type = type;
+    this.intensity = intensity;
+    this.position = position;
+}
+
+Light.AMBIENT = 0;
+Light.POINT = 1;
+Light.DIRECTIONAL = 2;
 
 // Scene setup.
 var viewport_size = 1;
 var projection_plane_z = 1;
-var camera_position = [0, 0, -0];
+var camera_position = [0, 0, 0];
 var background_color = [255, 255, 255];
 var spheres = [
-    new Sphere([0, -1, 3], 1, [255, 0, 0]),     // red
-    new Sphere([2, 0, 4], 1, [0, 0, 255]),      // blue
-    new Sphere([-2, 0, 4], 1, [0, 255, 0])];    // green
-
+    new Sphere([0, -1, 3], 1, [255, 0, 0], 500),         // red
+    new Sphere([2, 0, 4], 1, [0, 0, 255], 500),          // blue
+    new Sphere([-2, 0, 4], 1, [0, 255, 0], 10),         // green
+    new Sphere([0, -5001, 0], 5000, [255, 255, 0], 1000), // yellow Earth
+];
+var lights = [
+    new Light(Light.AMBIENT, 0.2),
+    new Light(Light.POINT, 0.7, [2, 1, 0]),
+    new Light(Light.DIRECTIONAL, 0.2, [1, 4, 4])
+];
 
 // Converts 2D canvas coordinates to 3D viewport coordinates.
 var CanvasToViewport = function(p2d) {
@@ -75,6 +108,46 @@ var CanvasToViewport = function(p2d) {
       p2d[0] * viewport_size / canvas.width,
       p2d[1] * viewport_size / canvas.height,
       projection_plane_z];
+}
+
+// Computes the intensity of light upon a given point
+var ComputeLighting = function(point, normal, view, s) {
+    intensity = 0.0;
+    for (var i = 0; i < lights.length; i++) {
+        light = lights[i];
+        if (light.type == Light.AMBIENT) {
+            intensity += light.intensity;
+        }
+        else {
+            if (light.type == Light.POINT) {
+                l_vec = Subtract(light.position, point);
+            }
+            else {
+                l_vec = light.position;
+            }
+
+            // diffuse: "matteness"
+            n_dot_l = DotProduct(normal, l_vec);
+            if (n_dot_l > 0) {
+                intensity += light.intensity * n_dot_l / Norm(l_vec);
+            }
+
+            // specular: "shinyness"
+            if (s != -1) {
+                reflection_vec = Subtract(
+                    ScalarMultiplication(
+                        2 * n_dot_l,
+                        normal),
+                    l_vec);
+                r_dot_v = DotProduct(reflection_vec, view);
+                if (r_dot_v > 0) {
+                    r_v_len_prod = Norm(reflection_vec) * Norm(view);
+                    intensity += light.intensity * (r_dot_v / r_v_len_prod) ** s;
+                }
+            }
+        }
+    }
+    return intensity;
 }
 
 
@@ -111,7 +184,14 @@ var TraceRay = function(origin, direction, t_min, t_max) {
             closest_sphere = spheres[i];
         }
     }
-    return closest_sphere == null ? background_color : closest_sphere.color;
+    if (closest_sphere == null) {
+        return background_color;
+    }
+    intersection_point = Add(origin, ScalarMultiplication(closest_t, direction));
+    normal = Normalize(Subtract(intersection_point, closest_sphere.center));
+    view = ScalarMultiplication(-1, direction);
+    light_intensity = ComputeLighting(intersection_point, normal, view, closest_sphere.specular);
+    return ScalarMultiplication(light_intensity, closest_sphere.color);
 }
 
 // main loop
