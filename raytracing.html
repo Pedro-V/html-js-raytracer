@@ -88,7 +88,7 @@ Light.DIRECTIONAL = 2;
 // Scene setup.
 var viewport_size = 1;
 var projection_plane_z = 1;
-var camera_position = [0, 0, -3];
+var camera_position = [0, 0, 0];
 var background_color = [255, 255, 255];
 var spheres = [
     new Sphere([0, -1, 3], 1, [255, 0, 0], 500),         // red
@@ -98,7 +98,7 @@ var spheres = [
 ];
 var lights = [
     new Light(Light.AMBIENT, 0.2),
-    new Light(Light.POINT, 0.7, [0, 1, 2]),
+    new Light(Light.POINT, 0.7, [2, 1, 0]),
     new Light(Light.DIRECTIONAL, 0.2, [1, 4, 4])
 ];
 
