@@ -11,8 +11,6 @@ var canvas_context = canvas.getContext("2d");
 var canvas_buffer = canvas_context.getImageData(0, 0, canvas.width, canvas.height);
 var canvas_pitch = canvas_buffer.width * 4;
 
-
-// The PutPixel() function.
 var PutPixel = function(x, y, color) {
   x = canvas.width/2 + x;
   y = canvas.height/2 - y - 1;
