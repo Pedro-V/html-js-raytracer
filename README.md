@@ -1,4 +1,10 @@
+<div style="text-align: center">
+
 # HTML + JS Raytracer
+
+![](showcase.png)
+
+</div>
 
 A 300-line HTML + JS raytracer. Inspired by the fantastic textbook [Computer Graphics from Scratch, by Gabriel Gambetta](https://www.amazon.com/Computer-Graphics-Scratch-Gabriel-Gambetta/dp/1718500769)
 
